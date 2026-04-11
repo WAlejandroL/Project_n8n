@@ -4,7 +4,7 @@ Este workflow de **n8n** automatiza la gestión de correos electrónicos utiliza
 
 ---
 
-## Funcionalidades 1
+## Funcionalidades 
 
 - Monitoreo automático de correos con Gmail
 - Clasificación inteligente usando IA (OpenAI)
