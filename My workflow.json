@@ -1,0 +1,1055 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Responde SOLO en JSON válido con las siguientes etiquetas: Categoria, Prioridad, Agendable y Resumen, y si aplica para cita o evento, agregar Lugar, solo la Hora en formato 24 horas y la Fecha en formato a/m/d"
+            },
+            {
+              "content": "=Si este no es un correo que contenga un evento o cita agendable marcalo como 0, de lo contrario marcalo como 1. Clasifica este email del 1 al 10 siendo superioir o igual a 7 como alta:  {{ $json.Subject }} {{ $json.From }} {{ $json.snippet }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "465b5699-9a29-4c29-b003-5d644ec6a3a7",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ayh1osSnBO1gLpcZ",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d148670a-fc32-4eac-b944-1bf3e0af9c2c",
+              "leftValue": "={{ $json.Agendable }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        0
+      ],
+      "id": "c335d8dc-a4db-49fd-af27-a05e83295188",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const fecha = item.json.Fecha\n  const hora = item.json.Hora\n\n  // separar fecha\n  const [year, month, day] = fecha.split(\"/\")\n\n  // asegurar 2 dígitos\n  const mes = month.padStart(2, \"0\")\n  const dia = day.padStart(2, \"0\")\n\n  const fechaLocal = `${year}-${mes}-${dia}T${hora}:00`\n\n  const start = new Date(fechaLocal)\n\n  const end = new Date(start.getTime() + 60 * 60 * 1000)\n\n  return {\n    json: {\n      ...item.json,\n      fecha_inicio: fechaLocal,\n      fecha_fin: end.toISOString().replace(\"Z\", \"\")\n    }\n  }\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "0fb550d2-6a84-490e-8a71-2efe5b718059",
+      "name": "Code in JavaScript",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=💻 *Te llego un nuevo correo* 📩\n\nCategoria: {{ $('Edit Fields3').item.json.Categoria }}\n\nResumen: {{ $('Edit Fields3').item.json.Resumen }}",
+        "replyMarkup": "=",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        -176
+      ],
+      "id": "e2204059-5c31-47df-a52f-356f56bb599f",
+      "name": "Send a text message",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=💻 *Te llego un nuevo correo* 📩\n\nPrioridad:  {{ $('Code in JavaScript').item.json.Prioridad }}\nCategoria: {{ $('Code in JavaScript').item.json.Categoria }}\nResumen: {{ $('Code in JavaScript').item.json.Resumen }}",
+        "replyMarkup": "=",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1552,
+        176
+      ],
+      "id": "02db5fdc-3f23-4dd5-9f67-d60a3942a814",
+      "name": "Send a text message1",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Responde SOLO en JSON válido con las siguientes etiquetas: Categoria y Resumen, y si aplica para cita o evento, agregar Lugar, solo la Hora en formato 24 horas y la Fecha en formato a/m/d"
+            },
+            {
+              "content": "=Haz el resumen con  {{ $json.message.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        432
+      ],
+      "id": "a89c6d69-6a14-4121-950b-0598299d87ce",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ayh1osSnBO1gLpcZ",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18925ecf-ecf4-4687-b4a1-addbca067e38",
+              "name": "Lugar",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Lugar }}",
+              "type": "string"
+            },
+            {
+              "id": "6bdcc88a-891b-4118-a156-1b1d632392b3",
+              "name": "Hora",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Hora }}",
+              "type": "string"
+            },
+            {
+              "id": "0abcc172-3082-4339-b2ca-bc0f4aa3c6ab",
+              "name": "Fecha",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "2f24b33d-c4f1-427f-b156-716231026937",
+              "name": "Resumen",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "9ae11e20-ab8c-450d-a982-00976eb9d05a",
+              "name": "Categoria",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Categoria }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        432
+      ],
+      "id": "5c5893ce-3044-41fe-b922-45bed8f5795b",
+      "name": "Edit Fields1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const fecha = item.json.Fecha\n  const hora = item.json.Hora\n\n  // separar fecha\n  const [year, month, day] = fecha.split(\"/\")\n\n  // asegurar 2 dígitos\n  const mes = month.padStart(2, \"0\")\n  const dia = day.padStart(2, \"0\")\n\n  const fechaLocal = `${year}-${mes}-${dia}T${hora}:00`\n\n  const start = new Date(fechaLocal)\n\n  const end = new Date(start.getTime() + 60 * 60 * 1000)\n\n  return {\n    json: {\n      ...item.json,\n      fecha_inicio: fechaLocal,\n      fecha_fin: end.toISOString().replace(\"Z\", \"\")\n    }\n  }\n})"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        432
+      ],
+      "id": "6e816f4e-c965-48ce-a035-38cf03dca1d9",
+      "name": "Code in JavaScript2",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=Tu cita se agendo correctamente. ",
+        "replyMarkup": "=",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        368
+      ],
+      "id": "11b6bc40-df7e-4dc3-b530-ab328f329b19",
+      "name": "Send a text message2",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "brianloglez10@gmail.com",
+          "mode": "list",
+          "cachedResultName": "brianloglez10@gmail.com"
+        },
+        "start": "={{ $json.fecha_inicio }}",
+        "end": "={{ $json.fecha_fin }}",
+        "additionalFields": {
+          "summary": "={{ $json.Categoria }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        432
+      ],
+      "id": "3e031c59-8a16-4624-b042-8fdb3110dcca",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "d6ugZWRsR5lyF8dt",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1e47abc-53ce-4b1b-ad42-9e48b324596d",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "confirmed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        432
+      ],
+      "id": "9452b948-762f-4f5d-81d6-7389cc0becb4",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=No se pudo agendar tu cita. Lo siento\n\nIntentalo de nuevo.",
+        "replyMarkup": "=",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        496
+      ],
+      "id": "a2924fa7-a510-47ad-a2b4-e87f5a91da71",
+      "name": "Send a text message3",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18925ecf-ecf4-4687-b4a1-addbca067e38",
+              "name": "Lugar",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Lugar }}",
+              "type": "string"
+            },
+            {
+              "id": "6bdcc88a-891b-4118-a156-1b1d632392b3",
+              "name": "Hora",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Hora }}",
+              "type": "string"
+            },
+            {
+              "id": "0abcc172-3082-4339-b2ca-bc0f4aa3c6ab",
+              "name": "Fecha",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "2f24b33d-c4f1-427f-b156-716231026937",
+              "name": "Resumen",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "9ae11e20-ab8c-450d-a982-00976eb9d05a",
+              "name": "Categoria",
+              "value": "={{JSON.parse($json.output[0].content[0].text).Categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "ae47ca43-7499-443e-ab38-f16392895bb7",
+              "name": "Agendable",
+              "value": "={{ parseInt(JSON.parse($json.output[0].content[0].text).Agendable) }}",
+              "type": "number"
+            },
+            {
+              "id": "80bd7e76-007f-43c6-ab45-262b58e26322",
+              "name": "Prioridad",
+              "value": "={{ parseInt(JSON.parse($json.output[0].content[0].text).Prioridad) }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        0
+      ],
+      "id": "347de1f5-3b23-41e9-8570-98def2c9cde5",
+      "name": "Edit Fields3",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c23b1321-cc62-4b14-aaf1-9d4abe092882",
+              "leftValue": "={{ $('Edit Fields3').item.json.Prioridad }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1136,
+        96
+      ],
+      "id": "28f0c3e5-1743-48ae-82eb-77aeb1da8b1b",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "brianloglez10@gmail.com",
+          "mode": "list",
+          "cachedResultName": "brianloglez10@gmail.com"
+        },
+        "start": "={{ $json.fecha_inicio }}",
+        "end": "={{ $json.fecha_fin }}",
+        "additionalFields": {
+          "summary": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        176
+      ],
+      "id": "1f3dfea1-a052-4e62-9e15-ed89ca92ebf1",
+      "name": "Create an event1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "d6ugZWRsR5lyF8dt",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=📅 {{ $('Code in JavaScript').item.json.Categoria }}\n\n🕒 {{ $('Code in JavaScript').item.json.Hora }}\nLugar: {{ $('Code in JavaScript').item.json.Lugar }}\n\n¿Quieres agendar este evento?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Confirmar",
+                    "additionalFields": {
+                      "callback_data": "=C|{{$json.fecha_inicio}}|{{$json.fecha_fin}}"
+                    }
+                  },
+                  {
+                    "text": "❌ Cancelar",
+                    "additionalFields": {
+                      "callback_data": "X"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "df08a975-dab4-4cd4-ac06-c5ca1ad6c729",
+      "name": "Send a text message4",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "64d8effb-0c38-4c57-a599-a36106e25367",
+              "leftValue": "={{ $json.Accion }}",
+              "rightValue": "C",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2208,
+        -32
+      ],
+      "id": "a44fd04b-8fb1-428d-9bb4-6f752e1b4505",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "brianloglez10@gmail.com",
+          "mode": "list",
+          "cachedResultName": "brianloglez10@gmail.com"
+        },
+        "start": "={{ $json.Fecha_inicio }}",
+        "end": "={{ $json.Fecha_Fin }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2416,
+        -192
+      ],
+      "id": "c4e25d6e-2ab9-4d67-8776-e08d2e88f889",
+      "name": "Create an event2",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "d6ugZWRsR5lyF8dt",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=El evento se agendo correctamente",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2864,
+        -272
+      ],
+      "id": "9f8f7ac2-c0f2-4e7f-9a8a-ac5f3e217646",
+      "name": "Send a text message5",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=El evento no se agendo",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2432,
+        0
+      ],
+      "id": "9716182e-b0a0-46b0-963b-491f1510d928",
+      "name": "Send a text message6",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1e47abc-53ce-4b1b-ad42-9e48b324596d",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "confirmed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2624,
+        -192
+      ],
+      "id": "a70fde9e-be70-4bd3-9c71-e3d9de6ab881",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "chatId": "6799959414",
+        "text": "=No se pudo agendar tu evento, intentando de nuevo",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2864,
+        -128
+      ],
+      "id": "1b74f63d-1676-401a-bc91-f3029171265f",
+      "name": "Send a text message7",
+      "webhookId": "b6a5de08-9731-4121-8734-4d67c5bc9e72",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18925ecf-ecf4-4687-b4a1-addbca067e38",
+              "name": "Accion",
+              "value": "={{ $json.callback_query.data.split(\"|\")[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "6bdcc88a-891b-4118-a156-1b1d632392b3",
+              "name": "Fecha_inicio",
+              "value": "={{ $json.callback_query.data.split(\"|\")[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "0abcc172-3082-4339-b2ca-bc0f4aa3c6ab",
+              "name": "Fecha_Fin",
+              "value": "={{ $json.callback_query.data.split(\"|\")[2] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -32
+      ],
+      "id": "655f818e-2a34-4121-83ef-b6b031660d10",
+      "name": "Edit Fields",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        432
+      ],
+      "id": "3be9dbbc-b696-4b83-af0e-95ce8d61658f",
+      "name": "Entrada Mensaje",
+      "webhookId": "2c68628a-5f86-4583-93d1-171bf0930612",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "82511232-8fa5-443b-a5fe-1244fa0c85f9",
+      "name": "Gmail",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9i02B9zhpIQSu4ny",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        -32
+      ],
+      "id": "e4c6b8d9-278a-4a2d-9550-679bf5a84e1c",
+      "name": "Respuesta Boton",
+      "webhookId": "039bd42d-0bdb-4f6c-87cf-3a1998ee4a5a",
+      "credentials": {
+        "telegramApi": {
+          "id": "HWzIYJF05aVmNTll",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message2": {
+      "main": [
+        []
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create an event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message4": {
+      "main": [
+        []
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Create an event2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event2": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Send a text message5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message7": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entrada Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta Boton": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e5614d81-cb02-415a-bab2-f466d8593c8c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc97a2925d1cbde9bff899c2a5eaeab78971723982527447091db5f4fbfbd24d"
+  },
+  "id": "Xb68qAziobiybI6D",
+  "tags": []
+}
